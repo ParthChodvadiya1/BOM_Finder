@@ -31,18 +31,23 @@ should_i_scrape = True
 def parse_octopart(content,code):
     soup = BeautifulSoup(content, features="html.parser")
     divs = soup.find_all('div')
+    with open('octopart.html', 'w', encoding='utf-8') as f:
+        f.write(content)
+        
     for div in divs:
         try:
-            if div.find('h3') != None:
-                if div.find('h3').text == 'Technical Specifications':
-                    for row in div.find_all('tr'):
-                        if len(row.find_all('td')) == 2:
-                            if row.find_all('td')[0].text == 'Height':
-                                octopartData[code]['Octopart - Height'] = row.find_all('td')[1].text
-                            if row.find_all('td')[0].text == 'Termination':
-                                octopartData[code]['Octopart - Termination'] = row.find_all('td')[1].text
-                            if row.find_all('td')[0].text == 'Mount':
-                                octopartData[code]['Octopart - Mount'] = row.find_all('td')[1].text
+            if div.find('table'):
+                table = div.find('table')
+                for tr in table.find_all('tr'):
+                    for td in tr.find_all('td'):
+                        if td.text == 'Termination':
+                            octopartData[code]['Octopart - Termination'] = tr.text.strip().replace('Termination', '')
+                            
+                        if td.text == 'Height':
+                            octopartData[code]['Octopart - Height'] = tr.text.strip().replace('Height', '').replace('mm', '')
+                            
+                        if td.text == 'Mount':
+                            octopartData[code]['Octopart - Mount'] = tr.text.strip().replace('Mount', '')
         except:
             pass
     c = 0
@@ -80,6 +85,7 @@ def extract_product_link(links,code):
         return partly_include_code[0]
     else:
         return None
+    
 async def octopart_scraper_advanced(code):
     octopartData[code] = {
             'Octopart - Mount': 'N/A',
@@ -94,8 +100,6 @@ async def octopart_scraper_advanced(code):
     if str(code) != 'nan' and '/' not in str(code):
         try:
             async with aiohttp.ClientSession() as session:
-                # async with session.get(url='https://app.scrapingbee.com/api/v1/',params={'api_key': '75A4Z8NS5Q80JKI2VUIB6WT2301PB51K3Q5OBO9T17NBELEGSBTKSRX10XYAEYJA6NWKV4T80DBIM7G8','url': f'https://octopart.com/search?q={code}&specs=1','premium_proxy': 'true','country_code': 'us'}) as response:
-                # async with session.post(url='https://scrape.smartproxy.com/v1/tasks',headers= headers,data={"target": "universal","parse": 'false',"url": f'https://octopart.com/search?q={code}&specs=1'}) as response:
                 async with session.post(url='https://scrape.smartproxy.com/v1/tasks',headers= headers,json={        "target": "universal",
                     "parse": 'false',
                     "url": f"https://octopart.com/search?q={code}&specs=1"}) as response:
@@ -109,7 +113,6 @@ async def octopart_scraper_advanced(code):
                         if url == None:
                             return ['N/A', 'N/A']
                         async with aiohttp.ClientSession() as session1:
-                            # async with session1.get(url='https://app.scrapingbee.com/api/v1/',params={'api_key': '75A4Z8NS5Q80JKI2VUIB6WT2301PB51K3Q5OBO9T17NBELEGSBTKSRX10XYAEYJA6NWKV4T80DBIM7G8','url': url,'premium_proxy': 'true','country_code': 'us'}) as data:
                             async with session1.post(url='https://scrape.smartproxy.com/v1/tasks',headers=headers,json={"target": "universal", "parse": False,"url": url}) as data:
                                 print('Octopart Second Response: ',data.status)
                                 data = await data.json()
@@ -169,8 +172,6 @@ async def octopart_scraper(code):
     if str(code) != 'nan' and '/' not in str(code):
         try:
             async with aiohttp.ClientSession() as session:
-                # async with session.get(url='https://app.scrapingbee.com/api/v1/',params={'api_key': '75A4Z8NS5Q80JKI2VUIB6WT2301PB51K3Q5OBO9T17NBELEGSBTKSRX10XYAEYJA6NWKV4T80DBIM7G8','url': f'https://octopart.com/search?q={code}&specs=1','premium_proxy': 'true','country_code': 'us'}) as response:
-                # async with session.post(url='https://scrape.smartproxy.com/v1/tasks',headers= headers,data={"target": "universal","parse": 'false',"url": f'https://octopart.com/search?q={code}&specs=1'}) as response:
                 async with session.post(url='https://scrape.smartproxy.com/v1/tasks',headers= headers,json={        "target": "universal",
                     "parse": 'false',
                     "url": f"https://octopart.com/search?q={code}&specs=1"}) as response:
@@ -184,7 +185,7 @@ async def octopart_scraper(code):
                             if str(code).lower() in str(link.text).lower() and str(link['href']).lower().endswith('r=sp') and '-'.join(str(link['href']).lower().split('-')[:-2])[1:] == str(code).lower():
                                 url = 'https://octopart.com' + str(link['href'] + str('#Specs'))
                                 async with aiohttp.ClientSession() as session1:
-                                    # async with session1.get(url='https://app.scrapingbee.com/api/v1/',params={'api_key': '75A4Z8NS5Q80JKI2VUIB6WT2301PB51K3Q5OBO9T17NBELEGSBTKSRX10XYAEYJA6NWKV4T80DBIM7G8','url': url,'premium_proxy': 'true','country_code': 'us'}) as data:
+                                
                                     async with session1.post(url='https://scrape.smartproxy.com/v1/tasks',headers=headers,json={"target": "universal", "parse": False,"url": url}) as data:
                                         print('Octopart Second Response: ',data.status)
                                         data = await data.json()
@@ -214,7 +215,6 @@ async def octopart_scraper(code):
                                     code).lower():
                                 url = 'https://octopart.com' + str(link['href'] + str('#Specs'))
                                 async with aiohttp.ClientSession() as session3:
-                                    # async with session3.get(url='https://app.scrapingbee.com/api/v1/', params={'api_key': '75A4Z8NS5Q80JKI2VUIB6WT2301PB51K3Q5OBO9T17NBELEGSBTKSRX10XYAEYJA6NWKV4T80DBIM7G8','url': url, 'premium_proxy': 'true', 'country_code': 'us'}) as data:
                                     async with session3.post(url='https://scrape.smartproxy.com/v1/tasks',headers=headers,json={"target": "universal", "parse": False,"url": url}) as data:
                                         print('Octopart Second Response: ',data.status)
                                         data = await data.json()
@@ -301,11 +301,15 @@ async def mouser_scraper(code):
                                                 productResponse = productResponse['results'][0]['content']
                                                 productSoup = BeautifulSoup(productResponse, features="html.parser")
                                                 full_table = productSoup.find('table', {'class': 'specs-table'})
+                                                # print('Full Table: ',full_table)
+                                                print('code: ',code)
                                                 for tableRow in full_table.find_all('tr'):
                                                     try:
-                                                        if 'Termination Style:' == str(tableRow.find_all('td')[0].text).strip():
+                                                        if 'Mounting Style:' == str(tableRow.find_all('td')[0].text).strip():
+                                                            print('Mouser - Termination: ',str(tableRow.find_all('td')[1].text).strip())
                                                             mouserData[code]['Mouser - Termination'] = str(tableRow.find_all('td')[1].text).strip()
                                                         elif 'Height:' in str(tableRow.find_all('td')[0].text).strip():
+                                                            print('Mouser - Height: ',str(tableRow.find_all('td')[1].text).strip())
                                                             mouserData[code]['Mouser - Height'] = str(tableRow.find_all('td')[1].text).strip()
                                                     except Exception as ss:
                                                         continue
